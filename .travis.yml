@@ -1,15 +1,43 @@
 language: python
 
-dist: xenial
+jobs:
+  include:
+    - name: "Python 3.8.0 on Xenial Linux"
+      dist: xenial
+      python: 3.8           # this works for Linux but is ignored on macOS or Windows
+      env:
+        - >
+          CIBW_BEFORE_BUILD="
+          export LD_LIBRARY_PATH=/usr/local/lib &&
+          yum -y install wget yasm libtool libchromaprint-devel portaudio-devel boost-devel &&
+          if [[ ! -e ffmpeg ]]; then wget -O ffmpeg.tar.bz2 http://ffmpeg.org/releases/ffmpeg-2.8.tar.bz2 && mkdir ffmpeg && tar xvf ffmpeg.tar.bz2 -C ffmpeg --strip-components=1; fi &&
+          cd ffmpeg &&
+          ./configure --prefix=/usr/local --disable-debug --disable-static --enable-shared --enable-pic --enable-pthreads --disable-indev=jack &&
+          make -j4 &&
+          make install &&
+          cd -"
+      # before_install:
+      #   - sudo apt-get -qq update
+      #   - sudo apt-get install -y yasm libtool python3-dev libchromaprint-dev portaudio19-dev
+      #   # boost and libav are now up to date in ubuntu repos.
+      #   - sudo apt-get install libboost-dev libavformat-dev libavresample-dev
+    # - name: "Python 3.7.4 on macOS"
+    #   os: osx
+    #   osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+    #   language: shell       # 'language: python' is an error on Travis CI macOS
+    # - name: "Python 3.8.0 on Windows"
+    #   os: windows           # Windows 10.0.17134 N/A Build 17134
+    #   language: shell       # 'language: python' is an error on Travis CI Windows
+    #   before_install:
+    #     - choco install python --version 3.8.0
+    #     - python -m pip install --upgrade pip
+    #   env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
 
-python:
-  - 3.6
-
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y yasm libtool python3-dev libchromaprint-dev portaudio19-dev
-  # boost and libav are now up to date in ubuntu repos.
-  - sudo apt-get install libboost-dev libavformat-dev libavresample-dev
+env:
+  global:
+    - TWINE_USERNAME=__token__
+    # Note: TWINE_PASSWORD is set to a PyPI API token in Travis settings
+    - CIBW_SKIP=cp27-*
 
 #fedora 23
 ## add rpmfusion for ffmpeg
@@ -21,18 +49,17 @@ before_install:
 
 install:
   # necessary to build wheels.
-  - pip3 install --upgrade pip setuptools wheel
+  - pip3 install --upgrade pip setuptools wheel twine cibuildwheel
 
 script:
-  - python3 setup.py build
-  # using pip to install so we don't need to be root.
-  - pip3 install .
-  - python3 -c "import sys; print(sys.path); import musicplayer as mp; p = mp.createPlayer()"
+  # - python3 setup.py build
+  # # using pip to install so we don't need to be root.
+  # - pip3 install .
+  # - python3 -c "import sys; print(sys.path); import musicplayer as mp; p = mp.createPlayer()"
+  # build the wheels, put them into './dist'
+  - python3 -m cibuildwheel --output-dir dist
 
-# Deploy package to PyPi
-deploy:
-  provider: pypi
-  user: __token__
-  password : ${PYPI_TOKEN}
-  distributions: "sdist bdist_wheel"
-  skip_existing: true
+after_success:
+  # if the release was tagged, upload them to PyPI
+  - if [[ $TRAVIS_BRANCH == master ]]; then python3 -m twine upload dist/*; fi
+
