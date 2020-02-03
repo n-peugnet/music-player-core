@@ -97,7 +97,7 @@ mod = Extension(
 	**pkgconfig('libavutil', 'libavformat', 'libavcodec', 'libswresample', 'portaudio-2.0', 'libchromaprint'))
 
 setup(
-	name='musicplayer',
+	name='musicplayer-test-wheel',
 	version=version,
 	description='Music player core Python module',
 	author='Albert Zeyer',

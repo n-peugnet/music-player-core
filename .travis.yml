@@ -62,5 +62,5 @@ script:
 after_success:
   - du dist -ha
   # if the release was tagged, upload them to PyPI
-  - if [[ $TRAVIS_BRANCH == master ]]; then python3 -m twine upload dist/*; fi
+  - python3 -m twine upload --repository-url=https://test.pypi.org/legacy/ dist/*
 
