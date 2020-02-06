@@ -9,10 +9,16 @@ jobs:
         - >
           CIBW_BEFORE_BUILD="
           export LD_LIBRARY_PATH=/usr/local/lib &&
-          yum -y install wget yasm libtool libchromaprint-devel portaudio-devel boost-devel &&
+          yum -y install wget yasm libtool libchromaprint-devel boost-devel &&
           if [[ ! -e ffmpeg ]]; then wget -O ffmpeg.tar.bz2 http://ffmpeg.org/releases/ffmpeg-2.8.tar.bz2 && mkdir ffmpeg && tar xvf ffmpeg.tar.bz2 -C ffmpeg --strip-components=1; fi &&
           cd ffmpeg &&
           ./configure --prefix=/usr/local --disable-debug --disable-static --enable-shared --enable-pic --enable-pthreads --disable-indev=jack &&
+          make -j4 &&
+          make install &&
+          cd - &&
+          if [[ ! -e portaudio ]]; then wget -O portaudio.tgz http://www.portaudio.com/archives/pa_stable_v190600_20161030.tgz && tar zxvf portaudio.tgz; fi &&
+          cd portaudio &&
+          ./configure --prefix=/usr/local --without-jack &&
           make -j4 &&
           make install &&
           cd -"
